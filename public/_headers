@@ -1,0 +1,4 @@
+# Cloudflare static-assets headers. Clip names don't change when a clip is
+# re-rendered, so cache them for a day rather than forever.
+/audio/*
+  Cache-Control: public, max-age=86400

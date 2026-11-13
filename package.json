@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "python3 -m http.server 8795 -d public",
     "audio": "node --env-file=../arabic-sound-lab/.env.local scripts/generate-audio.mjs",
-    "audio:check": "node --env-file=../arabic-sound-lab/.env.local scripts/generate-audio.mjs --check"
+    "audio:check": "node --env-file=../arabic-sound-lab/.env.local scripts/generate-audio.mjs --check",
+    "deploy": "npx wrangler deploy"
   },
   "devDependencies": {
     "@breezystack/lamejs": "^1.2.7",

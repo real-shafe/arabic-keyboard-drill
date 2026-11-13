@@ -1,0 +1,9 @@
+// Static-files Worker: serves public/ at arabic-keyboard-drill.shafe.dev
+{
+  "name": "arabic-keyboard-drill",
+  "compatibility_date": "2025-07-15",
+  "assets": { "directory": "./public" },
+  "routes": [
+    { "pattern": "arabic-keyboard-drill.shafe.dev", "custom_domain": true }
+  ]
+}
