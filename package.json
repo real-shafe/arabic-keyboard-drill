@@ -1,0 +1,16 @@
+{
+  "name": "arabic-keyboard-drill",
+  "private": true,
+  "type": "module",
+  "description": "Learn the iOS Arabic keyboard layout, with letter names voiced by ElevenLabs",
+  "scripts": {
+    "dev": "python3 -m http.server 8795 -d public",
+    "audio": "node --env-file=../arabic-sound-lab/.env.local scripts/generate-audio.mjs",
+    "audio:check": "node --env-file=../arabic-sound-lab/.env.local scripts/generate-audio.mjs --check"
+  },
+  "devDependencies": {
+    "@breezystack/lamejs": "^1.2.7",
+    "@elevenlabs/elevenlabs-js": "^2.78.0"
+  },
+  "license": "MIT"
+}

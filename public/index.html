@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Arabic Keyboard Drill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one column — prompt card on top, a faithful iOS-style Arabic keyboard below, review list at the bottom */
+:root{
+  --bg:#17181b; --panel:#222327; --key:#5d5e63; --key-fn:#3f4045; --key-text:#f4f4f2;
+  --fg:#ecebe6; --muted:#9c9ba0; --accent:#e3b35a; --good:#5cc08a; --bad:#e2665c;
+  --ar:"Noto Naskh Arabic","Geeza Pro","Arial",serif;
+  --ui:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--fg);margin:0}
+[hidden]{display:none!important}
+body{font-family:var(--ui);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:760px;margin:0 auto;padding-block:28px 48px;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px}
+h1{font-size:1.5rem;margin:0;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+h1 span{font-family:var(--ar);color:var(--accent);font-weight:700;margin-inline-start:.35em}
+.stats{display:flex;gap:16px;font-family:var(--mono);font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.stats b{color:var(--fg);font-weight:500}
+.modes{display:flex;gap:6px;flex-wrap:wrap}
+.modes button,.opt,.ghost{font:500 .9rem var(--ui);border-radius:8px;cursor:pointer;border:1px solid #3a3b40;background:transparent;color:var(--fg);padding:8px 14px}
+.modes button[aria-pressed="true"]{background:var(--accent);color:#1b1408;border-color:var(--accent)}
+.modes label{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);margin-inline-start:8px}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.prompt{background:var(--panel);border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:10px;min-height:150px}
+.eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.q{font-size:1.6rem;font-weight:600;line-height:1.2}
+.q small{display:block;font-size:1rem;font-weight:400;color:var(--muted);margin-top:4px}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.opt{text-align:start;padding:10px 12px;line-height:1.3}
+.opt small{display:block;color:var(--muted);font-weight:400;font-size:.8rem}
+.opt:hover{border-color:var(--muted)}
+.opt.right{border-color:var(--good);background:color-mix(in srgb,var(--good) 18%,transparent)}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 18%,transparent)}
+.feedback{min-height:1.4em;font-size:.95rem;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.feedback.ok{color:var(--good)} .feedback.no{color:var(--bad)}
+.feedback .ar{font-family:var(--ar);font-size:1.3em}
+.say{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;padding:0}
+.say svg{width:15px;height:15px}
+.say.playing{background:color-mix(in srgb,currentColor 20%,transparent)}
+.next{align-self:flex-start;background:var(--accent);color:#1b1408;border:0;font:600 .9rem var(--ui);padding:9px 16px;border-radius:8px;cursor:pointer}
+
+/* keyboard */
+.kb{background:#2b2b2d;border-radius:14px;padding:10px 6px 12px;display:flex;flex-direction:column;gap:9px;user-select:none}
+.row{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:6px;direction:rtl}
+.k{appearance:none;border:0;border-radius:7px;background:var(--key);color:var(--key-text);aspect-ratio:.82;display:grid;place-items:center;cursor:pointer;font-family:var(--ar);font-size:clamp(1.05rem,4.6vw,2rem);line-height:1;padding:0;position:relative;transition:transform .08s,background .15s,box-shadow .15s}
+.k:active{transform:scale(.94)}
+.k.fn{background:var(--key-fn)}
+.k.back{grid-column:span 2;aspect-ratio:auto}
+.row.bottom{grid-template-columns:1.25fr 1.1fr 4fr 1.2fr 2.4fr;direction:ltr}
+.row.bottom .k{aspect-ratio:auto;height:clamp(40px,10vw,64px);font-family:var(--ui);font-size:clamp(.9rem,3vw,1.3rem)}
+.row.bottom .k.num{font-family:var(--ar)}
+.k svg{width:44%;height:auto;max-width:34px}
+.k .tiny{position:absolute;bottom:6px;right:12%;font-family:var(--ar);font-size:.7em;opacity:.55}
+.k.hidden-label .glyph{visibility:hidden}
+.k.target{box-shadow:0 0 0 3px var(--accent);background:color-mix(in srgb,var(--accent) 35%,var(--key))}
+.k.hit{background:var(--good)!important;box-shadow:none}
+.k.miss{background:var(--bad)!important}
+.k.reveal{box-shadow:0 0 0 3px var(--good)}
+.hint{font-size:.8rem;color:var(--muted);text-align:center;margin:0}
+
+.review{display:flex;flex-direction:column;gap:8px}
+.review h2{font-size:.95rem;margin:0;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--panel);border-radius:999px;padding:4px 12px;font-size:.85rem;display:flex;gap:8px;align-items:center}
+.chip .ar{font-family:var(--ar);font-size:1.2rem;color:var(--accent)}
+.chip .n{font-family:var(--mono);color:var(--bad);font-size:.75rem}
+.empty{color:var(--muted);font-size:.85rem}
+.limit{display:flex;flex-direction:column;gap:6px;font-size:.9rem;color:var(--muted)}
+.limit b{color:var(--fg);font-family:var(--mono);font-weight:500}
+.limit input{width:100%;accent-color:var(--accent)}
+.k.out{opacity:.28}
+.ranks{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:6px}
+.rk{display:flex;align-items:center;gap:8px;background:var(--panel);border-radius:8px;padding:5px 10px;font-size:.82rem;border:0;color:var(--fg);font-family:var(--ui);cursor:pointer;text-align:start}
+.rk:hover{background:#2c2d32}
+.rk .i{font-family:var(--mono);color:var(--muted);width:1.6em;font-variant-numeric:tabular-nums}
+.rk .ar{font-family:var(--ar);font-size:1.25rem;color:var(--accent);width:1.1em;text-align:center}
+.rk.off{opacity:.35}
+.note{font-size:.78rem;color:var(--muted);margin:0}
+@media (max-width:480px){.opts{grid-template-columns:1fr}.row{gap:4px}.kb{padding-inline:4px}}
+@media (prefers-reduced-motion:reduce){.k{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Arabic Keyboard Drill<span>لوحة</span></h1>
+    </div>
+    <div class="stats" aria-live="polite">
+      <div>Score <b id="score">0/0</b></div>
+      <div>Streak <b id="streak">0</b></div>
+      <div>Best <b id="best">0</b></div>
+    </div>
+  </header>
+
+  <div class="modes" role="group" aria-label="Quiz mode">
+    <button id="m-find" aria-pressed="true">Find the key</button>
+    <button id="m-name" aria-pressed="false">Name the key</button>
+    <label><input type="checkbox" id="hide"> Hide key labels</label>
+    <label><input type="checkbox" id="speak" checked> Say the letter when correct</label>
+  </div>
+
+  <div class="limit">
+    <label for="lim">Quiz the <b id="limn">31</b> most common letters</label>
+    <input type="range" id="lim" min="4" max="31" value="31" step="1">
+  </div>
+
+  <section class="prompt" id="prompt" aria-live="polite"></section>
+
+  <div class="kb" id="kb" aria-label="Arabic keyboard"></div>
+  <p class="hint" id="hint">Tap the key that matches the description.</p>
+
+  <section class="review">
+    <h2>Keys to review</h2>
+    <div class="chips" id="chips"><span class="empty">Your missed keys will collect here.</span></div>
+    <button class="ghost" id="reset" style="align-self:flex-start">Reset score</button>
+  </section>
+
+  <section class="review">
+    <h2>Letters by how often they appear</h2>
+    <div class="ranks" id="ranks"></div>
+    <p class="note">Tap a letter to hear its name. Approximate order for Modern Standard Arabic text. ا includes its hamza forms (أ إ آ), which are typed by long-pressing that key. The order of the middle ranks varies a little between sources. Letter names voiced with ElevenLabs.</p>
+  </section>
+</div>
+
+<script>
+const L=(ch,name,sound)=>({id:ch,ch,name,sound,fn:false});
+const rows=[
+ [L("ج","jīm","“j” as in jam"),L("ح","ḥā'","breathy throat “h”"),L("خ","khā'","“kh” as in Scottish loch"),L("ه","hā'","plain “h”"),L("ع","ʿayn","throat constriction, no English match"),L("غ","ghayn","gargled “gh”, like French r"),L("ف","fā'","“f”"),L("ق","qāf","deep “q” from the back of the throat"),L("ث","thā'","“th” as in think"),L("ص","ṣād","heavy, emphatic “s”"),L("ض","ḍād","heavy, emphatic “d”")],
+ [L("ة","tā' marbūṭa","feminine ending, “-a” / “-at”"),L("ك","kāf","“k”"),L("م","mīm","“m”"),L("ن","nūn","“n”"),L("ت","tā'","“t”"),L("ا","alif","long “ā” or vowel carrier"),L("ل","lām","“l”"),L("ب","bā'","“b”"),L("ي","yā'","“y” or long “ī”"),L("س","sīn","“s”"),L("ش","shīn","“sh”")],
+ [{id:"back",fn:true,name:"Backspace",sound:"deletes the previous character"},L("ى","alif maqṣūra","word-final “ā”, a yā' without dots"),L("و","wāw","“w” or long “ū”"),L("ر","rā'","rolled “r”"),L("ز","zāy","“z”"),L("د","dāl","“d”"),L("ذ","dhāl","“th” as in this"),L("ط","ṭā'","heavy, emphatic “t”"),L("ظ","ẓā'","heavy, emphatic “dh”"),L("ء","hamza","glottal stop, the catch in uh-oh")]
+];
+const bottom=[
+ {id:"num",fn:true,name:"Numbers & punctuation",sound:"switches to Eastern Arabic numerals ١٢٣",label:"١٢٣"},
+ {id:"emoji",fn:true,name:"Emoji keyboard",sound:"opens the emoji picker"},
+ {id:"space",fn:true,name:"Space bar",sound:"the little ع shows the Arabic keyboard is active"},
+ {id:"tashkil",fn:true,name:"Diacritics (tashkīl)",sound:"short-vowel marks: fatḥa, kasra, ḍamma, shadda…",label:"ً◌"},
+ {id:"ret",fn:true,name:"Return",sound:"starts a new line or sends; its arrow is mirrored for right-to-left text"}
+];
+const all=[...rows.flat(),...bottom];
+const byId=Object.fromEntries(all.map(k=>[k.id,k]));
+const freq=Array.from("اليمونرهبتعةفدكسقحجىذشصطخثزضءغظ");
+const rank=Object.fromEntries(freq.map((c,i)=>[c,i]));
+
+// Letter-name clips, pre-generated with ElevenLabs (scripts/generate-audio.mjs):
+// audio/<code point, 4 hex>.mp3
+const clipUrl=ch=>`audio/${ch.codePointAt(0).toString(16).toUpperCase().padStart(4,"0")}.mp3`;
+const clips={};
+let playing=null;
+function say(ch,btn){
+  if(!ch)return;
+  const a=clips[ch]??=new Audio(clipUrl(ch));
+  if(playing&&playing!==a){playing.pause()}
+  a.currentTime=0;playing=a;
+  if(btn){btn.classList.add("playing");a.onended=a.onpause=()=>btn.classList.remove("playing")}
+  a.play().catch(()=>{});
+}
+const speakerSVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4Z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>';
+function sayButton(k){return k.fn?"":`<button class="say" data-say="${k.ch}" aria-label="Hear ${k.name}">${speakerSVG}</button>`}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-say]");if(b)say(b.dataset.say,b)});
+
+const icons={
+ back:'<svg viewBox="0 0 40 28" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" style="transform:scaleX(-1)"><path d="M13 2h22a3 3 0 0 1 3 3v18a3 3 0 0 1-3 3H13L2 14Z"/><path d="m19 9 10 10M29 9 19 19"/></svg>',
+ emoji:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="currentColor"/><circle cx="8.2" cy="9.5" r="1.6" fill="#3f4045"/><circle cx="15.8" cy="9.5" r="1.6" fill="#3f4045"/><path d="M6.5 13.5h11a5.5 5.5 0 0 1-11 0Z" fill="#3f4045"/></svg>',
+ ret:'<svg viewBox="0 0 40 28" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round" style="transform:scaleX(-1)"><path d="M28 4v8H6"/><path d="m13 5-7 7 7 7"/></svg>'
+};
+
+const kb=document.getElementById("kb");
+function keyHTML(k,extra=""){
+  let inner;
+  if(icons[k.id]) inner=`<span class="glyph">${icons[k.id]}</span>`;
+  else if(k.id==="space") inner=`<span class="glyph"></span><span class="tiny glyph">ع</span>`;
+  else inner=`<span class="glyph">${k.label||k.ch}</span>`;
+  const cls=["k",k.fn?"fn":"",k.id==="back"?"back":"",k.id==="num"?"num":"",extra].join(" ");
+  return `<button class="${cls}" data-id="${k.id}" aria-label="${k.name}">${inner}</button>`;
+}
+kb.innerHTML=rows.map(r=>`<div class="row">${r.map(k=>keyHTML(k)).join("")}</div>`).join("")+
+ `<div class="row bottom">${bottom.map(k=>keyHTML(k)).join("")}</div>`;
+const keyEl=id=>kb.querySelector(`[data-id="${id}"]`);
+
+let state={mode:"find",cur:null,locked:false,score:0,total:0,streak:0,best:0,missed:{}};
+let savedLimit=31,savedSpeak=true;
+try{const s=JSON.parse(localStorage.getItem("akd")||"null");if(s){state.best=s.best||0;state.missed=s.missed||{};savedLimit=s.limit||31;savedSpeak=s.speak!==false}}catch(e){}
+function save(){try{localStorage.setItem("akd",JSON.stringify({best:state.best,missed:state.missed,limit,speak:$("speak").checked}))}catch(e){}}
+
+const $=id=>document.getElementById(id);
+let limit=31;
+function pool(){return all.filter(k=>!k.fn&&rank[k.id]<limit)}
+function applyLimit(){
+  $("limn").textContent=limit;
+  kb.querySelectorAll(".k").forEach(e=>{const k=byId[e.dataset.id];e.classList.toggle("out",!k.fn&&rank[k.id]>=limit)});
+  $("ranks").innerHTML=freq.map((c,i)=>`<button class="rk${i>=limit?" off":""}" data-say="${c}" aria-label="Hear ${byId[c].name}"><span class="i">${i+1}</span><span class="ar">${c}</span>${byId[c].name}</button>`).join("");
+}
+let last=null;
+function pick(){
+  const p=pool();
+  // weight missed keys more heavily
+  const bag=[];p.forEach(k=>{const w=1+Math.min(4,state.missed[k.id]||0)*2;for(let i=0;i<w;i++)bag.push(k)});
+  let k;do{k=bag[Math.floor(Math.random()*bag.length)]}while(k===last&&p.length>1);
+  last=k;return k;
+}
+function clearKeys(){kb.querySelectorAll(".k").forEach(e=>e.classList.remove("target","hit","miss","reveal"))}
+function label(k){return k.name}
+
+function next(){
+  state.locked=false;clearKeys();
+  const k=state.cur=pick();
+  clips[k.ch]??=new Audio(clipUrl(k.ch)); // warm the clip so it plays without delay
+  clips[k.ch].preload="auto";
+  const pr=$("prompt");
+  if(state.mode==="find"){
+    $("hint").textContent="Tap the key that matches the description.";
+    pr.innerHTML=`<div class="eyebrow">Find this key</div><div class="q">${label(k)}<small>${k.sound}</small></div><div class="feedback" id="fb"></div>`;
+  }else{
+    $("hint").textContent="The highlighted key — which one is it?";
+    keyEl(k.id).classList.add("target");
+    const p=pool().filter(x=>x!==k&&x.fn===k.fn);
+    const others=[];while(others.length<3&&p.length){others.push(p.splice(Math.floor(Math.random()*p.length),1)[0])}
+    const opts=[k,...others].sort(()=>Math.random()-.5);
+    pr.innerHTML=`<div class="eyebrow">Name the highlighted key</div><div class="opts">${opts.map(o=>`<button class="opt" data-id="${o.id}">${label(o)}<small>${o.sound}</small></button>`).join("")}</div><div class="feedback" id="fb"></div>`;
+    pr.querySelectorAll(".opt").forEach(b=>b.onclick=()=>answer(b.dataset.id,b));
+  }
+}
+function glyphOf(k){return k.fn?"":` <span class="ar">${k.ch}</span>`}
+function answer(id,btn){
+  if(state.locked)return;state.locked=true;
+  const k=state.cur,ok=id===k.id;
+  state.total++;
+  if(ok){state.score++;state.streak++;state.best=Math.max(state.best,state.streak);
+    if(state.missed[k.id]){state.missed[k.id]--;if(!state.missed[k.id])delete state.missed[k.id]}}
+  else{state.streak=0;state.missed[k.id]=(state.missed[k.id]||0)+1}
+  const fb=$("fb");
+  if(state.mode==="find"){
+    keyEl(id).classList.add(ok?"hit":"miss");
+    if(!ok)keyEl(k.id).classList.add("reveal");
+  }else{
+    keyEl(k.id).classList.remove("target");keyEl(k.id).classList.add(ok?"hit":"reveal");
+    btn.classList.add(ok?"right":"wrong");
+    if(!ok)$("prompt").querySelector(`.opt[data-id="${k.id}"]`).classList.add("right");
+  }
+  if(ok){fb.className="feedback ok";fb.innerHTML=`<span>Correct — ${k.name}${glyphOf(k)}</span>${sayButton(k)}`;
+    if($("speak").checked)say(k.ch,fb.querySelector(".say"))}
+  else{const g=byId[id];fb.className="feedback no";
+    fb.innerHTML=`<span>${state.mode==="find"?`That was ${g.name}${glyphOf(g)}. ${k.name} is outlined in green.`:`It's ${k.name}${glyphOf(k)}.`}</span>${sayButton(k)}`}
+  const n=document.createElement("button");n.className="next";n.textContent="Next key";n.onclick=next;
+  $("prompt").appendChild(n);n.focus({preventScroll:true});
+  render();save();
+}
+kb.addEventListener("click",e=>{const b=e.target.closest(".k");if(!b||state.mode!=="find")return;answer(b.dataset.id)});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&state.locked&&!e.target.closest("[data-say]")){e.preventDefault();next()}});
+
+function render(){
+  $("score").textContent=`${state.score}/${state.total}`;$("streak").textContent=state.streak;$("best").textContent=state.best;
+  const m=Object.entries(state.missed).sort((a,b)=>b[1]-a[1]);
+  $("chips").innerHTML=m.length?m.map(([id,n])=>{const k=byId[id];return `<span class="chip">${k.fn?"":`<span class="ar">${k.ch}</span>`}${k.name}<span class="n">×${n}</span></span>`}).join(""):`<span class="empty">Your missed keys will collect here.</span>`;
+}
+function setMode(m){state.mode=m;$("m-find").setAttribute("aria-pressed",m==="find");$("m-name").setAttribute("aria-pressed",m==="name");next()}
+$("m-find").onclick=()=>setMode("find");$("m-name").onclick=()=>setMode("name");
+$("hide").onchange=e=>kb.querySelectorAll(".k").forEach(k=>k.classList.toggle("hidden-label",e.target.checked));
+$("speak").checked=savedSpeak;$("speak").onchange=save;
+$("lim").oninput=e=>{limit=+e.target.value;applyLimit()};
+$("lim").onchange=()=>{save();next()};
+$("reset").onclick=()=>{state.score=state.total=state.streak=0;state.missed={};render();save();next()};
+limit=savedLimit;$("lim").value=limit;applyLimit();
+render();next();
+</script>
+</body>
+</html>
