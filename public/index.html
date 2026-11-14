@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
-/* Layout: one column — prompt card on top, a faithful iOS-style Arabic keyboard below, review list at the bottom */
+/* Layout: one column — prompt card on top, a faithful iOS-style Arabic keyboard below */
 :root{
   --bg:#17181b; --panel:#222327; --key:#5d5e63; --key-fn:#3f4045; --key-text:#f4f4f2;
   --fg:#ecebe6; --muted:#9c9ba0; --accent:#e3b35a; --good:#5cc08a; --bad:#e2665c;
@@ -67,26 +67,11 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .k.hit{background:var(--good)!important;box-shadow:none}
 .k.miss{background:var(--bad)!important}
 .k.reveal{box-shadow:0 0 0 3px var(--good)}
-.hint{font-size:.8rem;color:var(--muted);text-align:center;margin:0}
 
-.review{display:flex;flex-direction:column;gap:8px}
-.review h2{font-size:.95rem;margin:0;font-weight:600}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{background:var(--panel);border-radius:999px;padding:4px 12px;font-size:.85rem;display:flex;gap:8px;align-items:center}
-.chip .ar{font-family:var(--ar);font-size:1.2rem;color:var(--accent)}
-.chip .n{font-family:var(--mono);color:var(--bad);font-size:.75rem}
-.empty{color:var(--muted);font-size:.85rem}
 .limit{display:flex;flex-direction:column;gap:6px;font-size:.9rem;color:var(--muted)}
 .limit b{color:var(--fg);font-family:var(--mono);font-weight:500}
 .limit input{width:100%;accent-color:var(--accent)}
 .k.out{opacity:.28}
-.ranks{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:6px}
-.rk{display:flex;align-items:center;gap:8px;background:var(--panel);border-radius:8px;padding:5px 10px;font-size:.82rem;border:0;color:var(--fg);font-family:var(--ui);cursor:pointer;text-align:start}
-.rk:hover{background:#2c2d32}
-.rk .i{font-family:var(--mono);color:var(--muted);width:1.6em;font-variant-numeric:tabular-nums}
-.rk .ar{font-family:var(--ar);font-size:1.25rem;color:var(--accent);width:1.1em;text-align:center}
-.rk.off{opacity:.35}
-.note{font-size:.78rem;color:var(--muted);margin:0}
 @media (max-width:480px){.opts{grid-template-columns:1fr}.row{gap:4px}.kb{padding-inline:4px}}
 @media (prefers-reduced-motion:reduce){.k{transition:none}}
 </style>
@@ -119,19 +104,6 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   <section class="prompt" id="prompt" aria-live="polite"></section>
 
   <div class="kb" id="kb" aria-label="Arabic keyboard"></div>
-  <p class="hint" id="hint">Tap the key that matches the description.</p>
-
-  <section class="review">
-    <h2>Keys to review</h2>
-    <div class="chips" id="chips"><span class="empty">Your missed keys will collect here.</span></div>
-    <button class="ghost" id="reset" style="align-self:flex-start">Reset score</button>
-  </section>
-
-  <section class="review">
-    <h2>Letters by how often they appear</h2>
-    <div class="ranks" id="ranks"></div>
-    <p class="note">Tap a letter to hear its name. Approximate order for Modern Standard Arabic text. ا includes its hamza forms (أ إ آ), which are typed by long-pressing that key. The order of the middle ranks varies a little between sources. Letter names voiced with ElevenLabs.</p>
-  </section>
 </div>
 
 <script>
@@ -200,7 +172,6 @@ function pool(){return all.filter(k=>!k.fn&&rank[k.id]<limit)}
 function applyLimit(){
   $("limn").textContent=limit;
   kb.querySelectorAll(".k").forEach(e=>{const k=byId[e.dataset.id];e.classList.toggle("out",!k.fn&&rank[k.id]>=limit)});
-  $("ranks").innerHTML=freq.map((c,i)=>`<button class="rk${i>=limit?" off":""}" data-say="${c}" aria-label="Hear ${byId[c].name}"><span class="i">${i+1}</span><span class="ar">${c}</span>${byId[c].name}</button>`).join("");
 }
 let last=null;
 function pick(){
@@ -220,10 +191,8 @@ function next(){
   clips[k.ch].preload="auto";
   const pr=$("prompt");
   if(state.mode==="find"){
-    $("hint").textContent="Tap the key that matches the description.";
     pr.innerHTML=`<div class="eyebrow">Find this key</div><div class="q">${label(k)}<small>${k.sound}</small></div><div class="feedback" id="fb"></div>`;
   }else{
-    $("hint").textContent="The highlighted key — which one is it?";
     keyEl(k.id).classList.add("target");
     const p=pool().filter(x=>x!==k&&x.fn===k.fn);
     const others=[];while(others.length<3&&p.length){others.push(p.splice(Math.floor(Math.random()*p.length),1)[0])}
@@ -262,8 +231,6 @@ document.addEventListener("keydown",e=>{if(e.key==="Enter"&&state.locked&&!e.tar
 
 function render(){
   $("score").textContent=`${state.score}/${state.total}`;$("streak").textContent=state.streak;$("best").textContent=state.best;
-  const m=Object.entries(state.missed).sort((a,b)=>b[1]-a[1]);
-  $("chips").innerHTML=m.length?m.map(([id,n])=>{const k=byId[id];return `<span class="chip">${k.fn?"":`<span class="ar">${k.ch}</span>`}${k.name}<span class="n">×${n}</span></span>`}).join(""):`<span class="empty">Your missed keys will collect here.</span>`;
 }
 function setMode(m){state.mode=m;$("m-find").setAttribute("aria-pressed",m==="find");$("m-name").setAttribute("aria-pressed",m==="name");next()}
 $("m-find").onclick=()=>setMode("find");$("m-name").onclick=()=>setMode("name");
@@ -271,7 +238,6 @@ $("hide").onchange=e=>kb.querySelectorAll(".k").forEach(k=>k.classList.toggle("h
 $("speak").checked=savedSpeak;$("speak").onchange=save;
 $("lim").oninput=e=>{limit=+e.target.value;applyLimit()};
 $("lim").onchange=()=>{save();next()};
-$("reset").onclick=()=>{state.score=state.total=state.streak=0;state.missed={};render();save();next()};
 limit=savedLimit;$("lim").value=limit;applyLimit();
 render();next();
 </script>
