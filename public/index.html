@@ -4,10 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Arabic Keyboard Drill</title>
+<link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
-/* Layout: one column — prompt card on top, a faithful iOS-style Arabic keyboard below */
+/* Layout: one column — prompt card on top, a faithful iOS-style Arabic keyboard below.
+   Everything fits one screen and nothing moves: the card always has room for whatever either mode
+   will show, and the keyboard takes the space the screen has left. */
 :root{
   --bg:#17181b; --panel:#222327; --key:#5d5e63; --key-fn:#3f4045; --key-text:#f4f4f2;
   --fg:#ecebe6; --muted:#9c9ba0; --accent:#e3b35a; --good:#5cc08a; --bad:#e2665c;
@@ -15,53 +18,84 @@
   --ui:"IBM Plex Sans",system-ui,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,monospace;
   color-scheme:dark;
+  /* --t: how much taller than 735px the screen is, up to 100px. Vertical spacing grows with it, from
+     tight to full, so the keyboard keeps its full size on every screen at least that tall. */
+  --vh:1vh;
+  --t:clamp(0px,calc(100*var(--vh) - 735px),100px);
+  --gap:calc(10px + .1*var(--t));
 }
+@supports (height:1dvh){:root{--vh:1dvh}}
 *{box-sizing:border-box}
 html,body{background:var(--bg);color:var(--fg);margin:0}
 [hidden]{display:none!important}
 body{font-family:var(--ui);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.wrap{max-width:760px;margin:0 auto;padding-block:28px 48px;display:flex;flex-direction:column;gap:20px}
+.wrap{max-width:760px;margin:0 auto;min-height:100vh;min-height:100dvh;padding-block:calc(10px + .18*var(--t)) calc(var(--gap) + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:var(--gap)}
 header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px}
-h1{font-size:1.5rem;margin:0;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+h1{font-size:1.5rem;line-height:1.2;margin:calc(.041*var(--t)) 0;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
 h1 span{font-family:var(--ar);color:var(--accent);font-weight:700;margin-inline-start:.35em}
 .modes{display:flex;gap:6px;flex-wrap:wrap}
 .modes button,.opt,.ghost{font:500 .9rem var(--ui);border-radius:8px;cursor:pointer;border:1px solid #3a3b40;background:transparent;color:var(--fg);padding:8px 14px}
 .modes button[aria-pressed="true"]{background:var(--accent);color:#1b1408;border-color:var(--accent)}
 .modes label{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);margin-inline-start:8px}
 button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button,label{touch-action:manipulation}
 
-.prompt{background:var(--panel);border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:10px;min-height:150px}
+/* Both modes sit in the card at once, one of them invisible, and every text the card can show has an
+   invisible copy (.sizer) in the same spot. The card is as tall as the tallest of them, always. */
+.prompt{background:var(--panel);border-radius:14px;padding:calc(14px + .06*var(--t)) 22px;display:grid}
+.pane{grid-area:1/1;min-width:0;display:flex;flex-direction:column;gap:10px}
+.pane.off,.sizer{visibility:hidden}
+.stack{display:grid}
+.stack>*{grid-area:1/1;min-width:0}
 .eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
 .q{font-size:1.6rem;font-weight:600;line-height:1.2}
 .q small{display:block;font-size:1rem;font-weight:400;color:var(--muted);margin-top:4px}
-.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.opt{text-align:start;padding:10px 12px;line-height:1.3}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:1fr;gap:8px}
+.opts>.stack,.opts>.opt:first-child{grid-area:1/1}
+.opt{text-align:start;padding:calc(8px + .02*var(--t)) 12px;line-height:1.3}
 .opt small{display:block;color:var(--muted);font-weight:400;font-size:.8rem}
-.opt:hover{border-color:var(--muted)}
+@media (hover:hover){.opt:not(.right):not(.wrong):hover{border-color:var(--muted)}}
 .opt.right{border-color:var(--good);background:color-mix(in srgb,var(--good) 18%,transparent)}
 .opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 18%,transparent)}
-.feedback{min-height:1.4em;font-size:.95rem;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.foot{margin-top:auto;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:14px}
+.feedback{align-self:end;min-height:40px;font-size:.95rem;line-height:1.4;display:flex;align-items:center;gap:8px}
 .feedback.ok{color:var(--good)} .feedback.no{color:var(--bad)}
-.feedback .ar{font-family:var(--ar);font-size:1.3em}
-.say{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;padding:0}
+.feedback .ar{font-family:var(--ar);font-size:1.3em;line-height:1}
+.feedback small{display:block;color:var(--muted);font-size:.85em}
+.say{flex:none;display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;padding:0}
 .say svg{width:15px;height:15px}
 .say.playing{background:color-mix(in srgb,currentColor 20%,transparent)}
-.next{align-self:flex-start;background:var(--accent);color:#1b1408;border:0;font:600 .9rem var(--ui);padding:9px 16px;border-radius:8px;cursor:pointer}
+.next{min-height:40px;background:var(--accent);color:#1b1408;border:0;font:600 .9rem var(--ui);padding:9px 16px;border-radius:8px;cursor:pointer}
+.next:not(.on){visibility:hidden}
 
-/* keyboard */
-.kb{background:#2b2b2d;border-radius:14px;padding:10px 6px 12px;display:flex;flex-direction:column;gap:9px;user-select:none}
-.row{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:6px;direction:rtl}
-.k{appearance:none;border:0;border-radius:7px;background:var(--key);color:var(--key-text);aspect-ratio:.82;display:grid;place-items:center;cursor:pointer;font-family:var(--ar);font-size:clamp(1.05rem,4.6vw,2rem);line-height:1;padding:0;position:relative;transition:transform .08s,background .15s,box-shadow .15s}
-.k:active{transform:scale(.94)}
+/* keyboard. --kw is the width of one key: as wide as the column allows, or narrower (down to 24px)
+   when the screen is too short for that. .kbslot is the room the screen has left under the card; the
+   long line solves "keyboard height = that room" for --kw. */
+.kbslot{flex:1 0 auto}
+.kb{--gx:6px;--px:6px;--b0:10.4px;--f0:4.8px;
+  --kw:calc((min(100vw - 32px,760px) - 2*var(--px) - 10*var(--gx))/11);
+  width:calc(11*var(--kw) + 10*var(--gx) + 2*var(--px));margin-inline:auto;
+  background:#2b2b2d;border-radius:14px;padding:10px var(--px) 12px;display:flex;flex-direction:column;gap:9px;user-select:none}
+@supports (width:1cqw){
+  .kbslot{flex:1 1 0;min-height:177px;container-type:size}
+  .kb{--kw:min(calc((100cqw - 2*var(--px) - 10*var(--gx))/11),max(24px,min(calc((100cqh - 89px)/3.6585),max(calc((100cqh - 49px - var(--b0))/4.7585),calc((100cqh - 113px)/3.6585)))))}
+}
+.row{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:var(--gx);direction:rtl}
+.k{appearance:none;border:0;border-radius:7px;background:var(--key);color:var(--key-text);aspect-ratio:.82;display:grid;place-items:center;cursor:pointer;font-family:var(--ar);font-size:clamp(1.05rem,calc(.506*var(--kw) + var(--f0)),2rem);line-height:1;padding:0;position:relative;transition:transform .08s,background .15s,box-shadow .15s,opacity .15s}
+.k:not(:disabled):active{transform:scale(.94)}
 .k.fn{background:var(--key-fn)}
 .k.back{grid-column:span 2;aspect-ratio:auto}
 .row.bottom{grid-template-columns:1.25fr 1.1fr 4fr 1.2fr 2.4fr;direction:ltr}
-.row.bottom .k{aspect-ratio:auto;height:clamp(40px,10vw,64px);font-family:var(--ui);font-size:clamp(.9rem,3vw,1.3rem)}
+.row.bottom .k{aspect-ratio:auto;height:clamp(40px,calc(1.1*var(--kw) + var(--b0)),64px);font-family:var(--ui);font-size:clamp(.9rem,calc(.33*var(--kw) + 3px),1.3rem)}
 .row.bottom .k.num{font-family:var(--ar)}
 .k svg{width:44%;height:auto;max-width:34px}
 .k .tiny{position:absolute;bottom:6px;right:12%;font-family:var(--ar);font-size:.7em;opacity:.55}
 .k.hidden-label .glyph{visibility:hidden}
+.k.hidden-label:is(.hit,.miss,.reveal,.told) .glyph{visibility:visible}
+/* a key that does nothing right now is dimmed; the key a question is about stays lit */
+.k:disabled{cursor:default;opacity:.5}
 .k.target{box-shadow:0 0 0 3px var(--accent);background:color-mix(in srgb,var(--accent) 35%,var(--key))}
+.k.told{background:color-mix(in srgb,var(--key-text) 30%,var(--key))}
 .k.hit{background:var(--good)!important;box-shadow:none}
 .k.miss{background:var(--bad)!important}
 .k.reveal{box-shadow:0 0 0 3px var(--good)}
@@ -70,7 +104,12 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .limit b{color:var(--fg);font-family:var(--mono);font-weight:500}
 .limit input{width:100%;accent-color:var(--accent)}
 .k.out{opacity:.28}
-@media (max-width:480px){.opts{grid-template-columns:1fr}.row{gap:4px}.kb{padding-inline:4px}}
+.k.target,.k.hit,.k.miss,.k.reveal{opacity:1}
+@media (max-width:480px){
+  .modes label{font-size:clamp(.78rem,3.6vw,.85rem)}
+  .prompt{padding-inline:14px}.opt{padding-inline:10px}
+  .kb{--gx:4px;--px:4px;--b0:8px;--f0:3.7px}
+}
 @media (prefers-reduced-motion:reduce){.k{transition:none}}
 </style>
 </head>
@@ -90,13 +129,24 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   </div>
 
   <div class="limit">
-    <label for="lim">Quiz the <b id="limn">31</b> most common letters</label>
-    <input type="range" id="lim" min="4" max="31" value="31" step="1">
+    <div id="limlabel">Quiz the <b id="limn">31</b> most common letters</div>
+    <input type="range" id="lim" min="4" max="31" value="31" step="1" aria-labelledby="limlabel">
   </div>
 
-  <section class="prompt" id="prompt" aria-live="polite"></section>
+  <section class="prompt" id="prompt" aria-live="polite">
+    <div class="pane" id="pane-find">
+      <div class="eyebrow">Find this key</div>
+      <div class="stack"><div class="q" id="q"></div></div>
+      <div class="foot"><div class="stack"><div class="feedback"></div></div><button class="next">Next key</button></div>
+    </div>
+    <div class="pane off" id="pane-name">
+      <div class="eyebrow">Name the highlighted key</div>
+      <div class="opts" id="opts"><button class="opt"></button><button class="opt"></button><button class="opt"></button><button class="opt"></button></div>
+      <div class="foot"><div class="stack"><div class="feedback"></div></div><button class="next">Next key</button></div>
+    </div>
+  </section>
 
-  <div class="kb" id="kb" aria-label="Arabic keyboard"></div>
+  <div class="kbslot"><div class="kb" id="kb" aria-label="Arabic keyboard"></div></div>
 </div>
 
 <script>
@@ -114,6 +164,7 @@ const bottom=[
  {id:"ret",fn:true,name:"Return",sound:"starts a new line or sends; its arrow is mirrored for right-to-left text"}
 ];
 const all=[...rows.flat(),...bottom];
+const letters=all.filter(k=>!k.fn);
 const byId=Object.fromEntries(all.map(k=>[k.id,k]));
 const freq=Array.from("اليمونرهبتعةفدكسقحجىذشصطخثزضءغظ");
 const rank=Object.fromEntries(freq.map((c,i)=>[c,i]));
@@ -132,7 +183,7 @@ function say(ch,btn){
   a.play().catch(()=>{});
 }
 const speakerSVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4Z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>';
-function sayButton(k){return k.fn?"":`<button class="say" data-say="${k.ch}" aria-label="Hear ${k.name}">${speakerSVG}</button>`}
+function sayButton(k){return `<button class="say" data-say="${k.ch}" aria-label="Hear ${k.name}">${speakerSVG}</button>`}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-say]");if(b)say(b.dataset.say,b)});
 
 const icons={
@@ -161,11 +212,22 @@ function save(){try{localStorage.setItem("akd",JSON.stringify({missed:state.miss
 
 const $=id=>document.getElementById(id);
 let limit=31;
-function pool(){return all.filter(k=>!k.fn&&rank[k.id]<limit)}
-function applyLimit(){
-  $("limn").textContent=limit;
-  kb.querySelectorAll(".k").forEach(e=>{const k=byId[e.dataset.id];e.classList.toggle("out",!k.fn&&rank[k.id]>=limit)});
+function pool(){return letters.filter(k=>rank[k.id]<limit)}
+// Every key that looks live does something; a key that does nothing is disabled and dimmed.
+// A letter in the quiz answers the question in "Find the key" and, once a question is answered (in
+// either mode), says which letter it is. A non-letter key says what it is for, once per question, in
+// "Find the key". While "Name the key" waits for an answer the keys are the picture being asked
+// about, so only the highlighted one responds: it says what to do, once.
+const explained=new Set();
+function setKeys(){
+  const waiting=state.mode==="name"&&!state.locked;
+  kb.querySelectorAll(".k").forEach(e=>{
+    const k=byId[e.dataset.id],out=!k.fn&&rank[k.id]>=limit;
+    e.classList.toggle("out",out);
+    e.disabled=waiting?state.hinted||!e.matches(".target"):out||explained.has(k.id)||k.fn&&state.mode==="name";
+  });
 }
+function applyLimit(){$("limn").textContent=limit;setKeys()}
 let last=null;
 function pick(){
   const p=pool();
@@ -174,54 +236,102 @@ function pick(){
   let k;do{k=bag[Math.floor(Math.random()*bag.length)]}while(k===last&&p.length>1);
   last=k;return k;
 }
-function clearKeys(){kb.querySelectorAll(".k").forEach(e=>e.classList.remove("target","hit","miss","reveal"))}
+function clearKeys(){kb.querySelectorAll(".k").forEach(e=>e.classList.remove("target","hit","miss","reveal","told"))}
 function label(k){return k.name}
 
+// The card. Each mode has a pane; the parts of a pane that change are filled in place.
+const pane={find:$("pane-find"),name:$("pane-name")};
+const fbOf=m=>pane[m].querySelector(".feedback:not(.sizer)"),nextOf=m=>pane[m].querySelector(".next");
+const optEls=[...$("opts").querySelectorAll(".opt")];
+const qHTML=k=>`${label(k)}<small>${k.sound}</small>`;
+const glyphOf=k=>` <span class="ar">${k.ch}</span>`;
+const msg={
+  ok:k=>`Correct — ${k.name}${glyphOf(k)}`,
+  miss:(g,k)=>`That was ${g.name}${glyphOf(g)}. ${k.name} is outlined in green.`,
+  its:k=>`It's ${k.name}${glyphOf(k)}.`,
+  that:k=>`That's ${k.name}${glyphOf(k)}.`,
+  fn:k=>`${k.name} is not a letter.<small>${k.sound}</small>`,
+  pick:"Pick this key's name above."
+};
+// Invisible copies of everything the card can show, so it never has to grow.
+{
+  const sizer=(cls,html)=>`<div class="${cls} sizer" aria-hidden="true">${html}</div>`;
+  const fb=(text,say=true)=>sizer("feedback",`<span>${text}</span>${say?'<span class="say"></span>':""}`);
+  // No wrong answer in "Find the key" wraps taller than the two longest names with the widest glyph.
+  const [a,b]=[...letters].sort((x,y)=>y.name.length-x.name.length);
+  const worst=letters.flatMap(g=>[msg.miss({...a,ch:g.ch},b),msg.miss({...b,ch:g.ch},a)]);
+  $("q").insertAdjacentHTML("afterend",letters.map(k=>sizer("q",qHTML(k))).join(""));
+  $("opts").insertAdjacentHTML("beforeend",sizer("stack",letters.map(k=>sizer("opt",qHTML(k))).join("")));
+  fbOf("find").insertAdjacentHTML("afterend",[...letters.flatMap(k=>[msg.ok(k),msg.that(k)]),...worst].map(t=>fb(t)).join("")+all.filter(k=>k.fn).map(k=>fb(msg.fn(k),false)).join(""));
+  fbOf("name").insertAdjacentHTML("afterend",letters.flatMap(k=>[msg.ok(k),msg.its(k),msg.that(k)]).map(t=>fb(t)).join("")+fb(msg.pick,false));
+}
+
 function next(){
-  state.locked=false;clearKeys();
+  state.locked=state.hinted=false;explained.clear();clearKeys();
   const k=state.cur=pick();
   clips[k.ch]??=new Audio(clipUrl(k.ch)); // warm the clip so it plays without delay
   clips[k.ch].preload="auto";
-  const pr=$("prompt");
+  for(const m in pane){fbOf(m).className="feedback";fbOf(m).innerHTML="";nextOf(m).classList.remove("on")}
   if(state.mode==="find"){
-    pr.innerHTML=`<div class="eyebrow">Find this key</div><div class="q">${label(k)}<small>${k.sound}</small></div><div class="feedback" id="fb"></div>`;
+    $("q").innerHTML=qHTML(k);
   }else{
     keyEl(k.id).classList.add("target");
-    const p=pool().filter(x=>x!==k&&x.fn===k.fn);
+    const p=pool().filter(x=>x!==k);
     const others=[];while(others.length<3&&p.length){others.push(p.splice(Math.floor(Math.random()*p.length),1)[0])}
     const opts=[k,...others].sort(()=>Math.random()-.5);
-    pr.innerHTML=`<div class="eyebrow">Name the highlighted key</div><div class="opts">${opts.map(o=>`<button class="opt" data-id="${o.id}">${label(o)}<small>${o.sound}</small></button>`).join("")}</div><div class="feedback" id="fb"></div>`;
-    pr.querySelectorAll(".opt").forEach(b=>b.onclick=()=>answer(b.dataset.id,b));
+    optEls.forEach((b,i)=>{const o=opts[i];b.hidden=!o;if(!o)return;b.className="opt";b.dataset.id=o.id;b.innerHTML=qHTML(o)});
   }
+  setKeys();
 }
-function glyphOf(k){return k.fn?"":` <span class="ar">${k.ch}</span>`}
+let answeredAt=0;
 function answer(id,btn){
-  if(state.locked)return;state.locked=true;
-  const k=state.cur,ok=id===k.id;
+  if(state.locked)return;state.locked=true;answeredAt=performance.now();
+  const k=state.cur,ok=id===k.id,m=state.mode;
   if(ok){
     if(state.missed[k.id]){state.missed[k.id]--;if(!state.missed[k.id])delete state.missed[k.id]}}
   else{state.missed[k.id]=(state.missed[k.id]||0)+1}
-  const fb=$("fb");
-  if(state.mode==="find"){
+  const fb=fbOf(m);
+  if(m==="find"){
     keyEl(id).classList.add(ok?"hit":"miss");
     if(!ok)keyEl(k.id).classList.add("reveal");
   }else{
     keyEl(k.id).classList.remove("target");keyEl(k.id).classList.add(ok?"hit":"reveal");
     btn.classList.add(ok?"right":"wrong");
-    if(!ok)$("prompt").querySelector(`.opt[data-id="${k.id}"]`).classList.add("right");
+    optEls.find(b=>b.dataset.id===k.id).classList.add("right");
   }
-  if(ok){fb.className="feedback ok";fb.innerHTML=`<span>Correct — ${k.name}${glyphOf(k)}</span>${sayButton(k)}`;
+  if(ok){fb.className="feedback ok";fb.innerHTML=`<span>${msg.ok(k)}</span>${sayButton(k)}`;
     if($("speak").checked)say(k.ch,fb.querySelector(".say"))}
-  else{const g=byId[id];fb.className="feedback no";
-    fb.innerHTML=`<span>${state.mode==="find"?`That was ${g.name}${glyphOf(g)}. ${k.name} is outlined in green.`:`It's ${k.name}${glyphOf(k)}.`}</span>${sayButton(k)}`}
-  const n=document.createElement("button");n.className="next";n.textContent="Next key";n.onclick=next;
-  $("prompt").appendChild(n);n.focus({preventScroll:true});
+  else{fb.className="feedback no";
+    fb.innerHTML=`<span>${m==="find"?msg.miss(byId[id],k):msg.its(k)}</span>${sayButton(k)}`}
+  setKeys();
+  const n=nextOf(m);n.classList.add("on");n.focus({preventScroll:true});
   save();
 }
-kb.addEventListener("click",e=>{const b=e.target.closest(".k");if(!b||state.mode!=="find")return;answer(b.dataset.id)});
-document.addEventListener("keydown",e=>{if(e.key==="Enter"&&state.locked&&!e.target.closest("[data-say]")){e.preventDefault();next()}});
+// A tap that is not an answer. A letter (a key, or one of the answers once the round is over) is named
+// and said, and its key lights up; a non-letter key says what it is for.
+function tell(k){
+  if(state.locked&&performance.now()-answeredAt<400)return; // an answer tapped twice in a hurry: the result stays
+  const fb=fbOf(state.mode),named=fb.querySelector(".say");
+  kb.querySelector(".told")?.classList.remove("told");
+  if(!k.fn)keyEl(k.id).classList.add("told");
+  if(named&&named.dataset.say===k.ch)return say(k.ch,named); // the line already names this letter: just say it again
+  fb.className="feedback";
+  if(k.fn){explained.add(k.id);fb.innerHTML=`<span>${msg.fn(k)}</span>`;setKeys()}
+  else{fb.innerHTML=`<span>${msg.that(k)}</span>${sayButton(k)}`;say(k.ch,fb.querySelector(".say"))}
+}
+kb.addEventListener("click",e=>{
+  const b=e.target.closest(".k");if(!b||b.disabled)return;
+  const k=byId[b.dataset.id];
+  if(k.fn||state.locked)tell(k);
+  else if(state.mode==="find")answer(k.id);
+  else{state.hinted=true;fbOf("name").innerHTML=`<span>${msg.pick}</span>`;setKeys()} // the highlighted key, tapped instead of an answer
+});
+optEls.forEach(b=>b.onclick=()=>state.locked?tell(byId[b.dataset.id]):answer(b.dataset.id,b));
+for(const m in pane)nextOf(m).onclick=next;
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&state.locked&&!e.target.closest("button,input")){e.preventDefault();next()}});
 
-function setMode(m){state.mode=m;$("m-find").setAttribute("aria-pressed",m==="find");$("m-name").setAttribute("aria-pressed",m==="name");next()}
+function setMode(m){state.mode=m;$("m-find").setAttribute("aria-pressed",m==="find");$("m-name").setAttribute("aria-pressed",m==="name");
+  for(const p in pane)pane[p].classList.toggle("off",p!==m);next()}
 $("m-find").onclick=()=>setMode("find");$("m-name").onclick=()=>setMode("name");
 $("hide").onchange=e=>kb.querySelectorAll(".k").forEach(k=>k.classList.toggle("hidden-label",e.target.checked));
 $("speak").checked=savedSpeak;$("speak").onchange=save;
